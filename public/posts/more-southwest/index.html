@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en-us"><head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+   <meta name="description" content="After reading James Vaughan&rsquo;s write-up about what he could do with a connection to the flight’s WiFi without access to the internet, and an upcoming Southwest flight of my own, I&rsquo;d thought I&rsquo;d replicate his findings and see what else was lurking around the airlines&rsquo; network.
+First, the data collection:
+while true; do http getconnected.southwestwifi.com/current.json | jq &gt; current_$(date &#43;%Y%m%d%H%M).json; sleep 60; done I started this maybe 30 minutes into my flight so wasn&rsquo;t able to get the full duration, but at the end the data checks out!">  
+
+  <title>
+    
+      More WiFi without internet on a Southwest flight
+    
+  </title>
+
+
+  <link rel="shortcut icon" type="image/x-icon" href="/" />
+  
+  
+  
+  <link rel="stylesheet" href="/css/main.c5af9bae99b4a3d315b9f39305ffff27e9c3383fbbfd8b5fcaf2237667021a333a982fb958d1813a720b0a660b14022337553ae1ca93ef2ee17c4ae628ac19cb.css" integrity="sha512-xa&#43;brpm0o9MVufOTBf//J&#43;nDOD&#43;7/YtfyvIjdmcCGjM6mC&#43;5WNGBOnILCmYLFAIjN1U64cqT7y7hfErmKKwZyw==" />
+  
+</head>
+<body a="auto">
+        <main class="page-content" aria-label="Content">
+            <div class="w">
+<a href="/">..</a>
+
+
+<article>
+    <p class="post-meta">
+        <time datetime="2023-10-04 11:24:00 -0600 MDT">
+            2023-10-04
+        </time>
+    </p>
+
+    <h1>More WiFi without internet on a Southwest flight</h1>
+
+    
+
+    <p>After reading James Vaughan&rsquo;s
+<a href="https://jamesbvaughan.com/southwest-wifi/">write-up</a> about what he could do
+with a connection to the flight’s WiFi without access to the internet, and an
+upcoming Southwest flight of my own, I&rsquo;d thought I&rsquo;d replicate his findings and
+see what else was lurking around the airlines&rsquo; network.</p>
+<p>First, the data collection:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span><span style="color:#66d9ef">while</span> true; <span style="color:#66d9ef">do</span> 
+</span></span><span style="display:flex;"><span>    http getconnected.southwestwifi.com/current.json | jq &gt; current_<span style="color:#66d9ef">$(</span>date +%Y%m%d%H%M<span style="color:#66d9ef">)</span>.json; 
+</span></span><span style="display:flex;"><span>    sleep 60; 
+</span></span><span style="display:flex;"><span><span style="color:#66d9ef">done</span>
+</span></span></code></pre></div><p>I started this maybe 30 minutes into my flight so wasn&rsquo;t able to get the full
+duration, but at the end the data checks out!</p>
+<p><img src="images/flight.jpg" alt="flight data"></p>
+<p>But what else is lurking around?</p>
+<p>My initial attempt to collect data actually didn&rsquo;t end up as expected. The pilot
+rebooted the wifi right at the start of our flight and so to debug when it would
+be working again, I kept trying to curl the IP address of the initial connection
+point: initial.southwestwifi.com. Curl kept returning an SSL error, so without
+reading further I figured I&rsquo;d give <a href="https://github.com/httpie/cli">httpie</a> a
+try. This gave me a much more useful response message! Specifically, the server
+couldn&rsquo;t validate the known hostnames tied to the SSL cert with my request. It
+was expecting one of the following:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>southwestwifi.com
+</span></span><span style="display:flex;"><span>pa.southwestwifi.com
+</span></span><span style="display:flex;"><span>crm.southwestwifi.com
+</span></span><span style="display:flex;"><span>www.southwestwifi.com
+</span></span><span style="display:flex;"><span>media.southwestwifi.com
+</span></span><span style="display:flex;"><span>stream.southwestwifi.com
+</span></span><span style="display:flex;"><span>initial.southwestwifi.com
+</span></span><span style="display:flex;"><span>opsdata.southwestwifi.com
+</span></span><span style="display:flex;"><span>test-crm.southwestwifi.com
+</span></span><span style="display:flex;"><span>connected.southwestwifi.com
+</span></span><span style="display:flex;"><span>flightdata.southwestwifi.com
+</span></span><span style="display:flex;"><span>getconnected.southwestwifi.com
+</span></span></code></pre></div><p>After a quick nslookup on each of these, we had the following table:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>southwestwifi.com                192.168.35.1
+</span></span><span style="display:flex;"><span>pa.southwestwifi.com
+</span></span><span style="display:flex;"><span>crm.southwestwifi.com            208.81.181.206
+</span></span><span style="display:flex;"><span>www.southwestwifi.com            192.168.35.1
+</span></span><span style="display:flex;"><span>media.southwestwifi.com          192.168.35.131
+</span></span><span style="display:flex;"><span>stream.southwestwifi.com         192.168.35.130
+</span></span><span style="display:flex;"><span>initial.southwestwifi.com        192.168.36.1
+</span></span><span style="display:flex;"><span>opsdata.southwestwifi.com
+</span></span><span style="display:flex;"><span>test-crm.southwestwifi.com       208.81.181.205
+</span></span><span style="display:flex;"><span>connected.southwestwifi.com      192.168.34.1
+</span></span><span style="display:flex;"><span>flightdata.southwestwifi.com
+</span></span><span style="display:flex;"><span>getconnected.southwestwifi.com   192.168.35.1
+</span></span></code></pre></div><p>Most of these look to be local to the aircraft itself. But what are those 208
+addresses?</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>nslookup 208.81.181.206<span style="color:#ae81ff">\
+</span></span></span><span style="display:flex;"><span><span style="color:#ae81ff"></span>206.181.81.208.in-addr.arpa     name <span style="color:#f92672">=</span> troy1.dc.nubill.net.
+</span></span><span style="display:flex;"><span>...
+</span></span></code></pre></div><p>Curling that endpoint got me a 403, so I didn&rsquo;t investigate any further, but it
+appears to be some proxy given the squid header I received in the response.</p>
+<p>At this point I looked back in my browser where I was still logging network
+traffic to confirm the repeated requests for <code>current.json</code> when I noticed
+another file: <code>log_heartbeat_connectivityalerts.json</code>.</p>
+<p>I immediately saved the HAR dump from my browser session and began exploring.
+Looks like Southwest also POSTS the following data periodically while you&rsquo;re
+connected to WiFi during your flight:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-json" data-lang="json"><span style="display:flex;"><span>{
+</span></span><span style="display:flex;"><span>  <span style="color:#f92672">&#34;params&#34;</span>: [
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;mac_address&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;...&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;url&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;/&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;tab&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;540&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;satcomm_status&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;active&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;connection_active&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;true&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;livetv_error&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;na&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;livetv_coverage&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;yes&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;show_popup&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;false&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;show_notification&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;false&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;html_show_alerts&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;false&#34;</span>
+</span></span><span style="display:flex;"><span>  },
+</span></span><span style="display:flex;"><span>  {
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;name&#34;</span>: <span style="color:#e6db74">&#34;html_show_no_coverage&#34;</span>,
+</span></span><span style="display:flex;"><span>    <span style="color:#f92672">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;na&#34;</span>
+</span></span><span style="display:flex;"><span>  }
+</span></span><span style="display:flex;"><span>  ]
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>This got me wondering what other data could be or was being POSTed back to
+Southwest. A quick grep for other endpoints with <code>log_</code> in them from the HAR
+dump:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>log_ad_data.json
+</span></span><span style="display:flex;"><span>log_games_event.json
+</span></span><span style="display:flex;"><span>log_heartbeat_connectivityalerts.json
+</span></span><span style="display:flex;"><span>log_javascript_message.json
+</span></span><span style="display:flex;"><span>log_jwplayer_error.json
+</span></span><span style="display:flex;"><span>log_portal_alerts.json
+</span></span></code></pre></div><p>The <code>log_ad_data</code> endpoint was interesting. Specific adId and campaignId values
+were in the post requests for this data, so I assume Southwest is doing some
+targeted advertising even without purchasing WiFi or signing in given my MAC
+address was sent.</p>
+<p>I didn&rsquo;t play any games or open any video players included with the free WiFi,
+so I&rsquo;m not surprised by the lack of data for those endpoints. Finally, the
+remainder of the JSON endpoints:</p>
+<div class="highlight"><pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-bash" data-lang="bash"><span style="display:flex;"><span>current.json
+</span></span><span style="display:flex;"><span>dcc_log.json
+</span></span><span style="display:flex;"><span>episode_info.json
+</span></span><span style="display:flex;"><span>episode_meta.json
+</span></span><span style="display:flex;"><span>episodes_for_season.json
+</span></span><span style="display:flex;"><span>series_playlist.json
+</span></span><span style="display:flex;"><span>set_has_player.json
+</span></span><span style="display:flex;"><span>set_media_notification_dismiss.json
+</span></span><span style="display:flex;"><span>sponsored_auth.json
+</span></span></code></pre></div><p>Not the worst way I&rsquo;ve spent a 4 hour layover. Wonder what else is out there,
+Southwest!</p>
+
+</article>
+
+            </div>
+        </main>
+    </body></html>

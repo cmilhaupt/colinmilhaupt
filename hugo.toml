@@ -1,0 +1,4 @@
+baseURL = 'https://colinmilhaupt.com/'
+languageCode = 'en-us'
+title = 'Colin Milhaupt'
+theme = 'nostyleplease'
